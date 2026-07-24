@@ -71,6 +71,97 @@ WEIGHTS (lb): structural MTOW 196,000 · runway-limit tonight 191,500
   MZFW 165,300 · total fuel 27,800
 FUEL (lb): burn 15,400 · OAK alt 1,900 · SMF alt 3,100 · reserve 4,300 · taxi 600`
 };
+// ---------------- SUPER SCENARIOS: KDEN → KJFK (all weights in 1,000 LB) ----------------
+const JFKDATA=`KJFK USABLE LANDING LENGTHS — beyond threshold, ft (chart excerpt):
+  4L 11,619 · 22R 8,655 · 4R 9,093 · 22L 7,440
+  13L 7,992 · 31R 8,163 · 13R 12,467 · 31L 11,247
+
+LANDING CHART EXCERPTS — twin-jet, flaps 30, weights in 1,000 lb
+Runway-limited max landing weight (SEA LEVEL PA):
+  usable 5,000: N/A wet · 6,600: 168.7 dry / 144.5 wet
+  7,400: 186.7 dry / 164.0 wet · 8,200: 190.0 / 181.5
+  8,600: 190.0 / 188.2 · 9,000+: 190.0 / 190.0
+  wind: headwind +0.5/kt · tailwind −2.5/kt
+Climb-limited max landing weight: SL ≤30°C: 190.0 · 5,000 ft PA 30°C: 149.6
+  corrections: eng A/I −0.5 · eng+wing A/I −3.0 · ice accretion −15.0 (cumulative)
+Max structural landing weight: 144.0
+Steel-brake quick turn-around weight (SL 20°C): 175.7 — exceed → 67 min + thermal plugs`;
+const SUPERS={
+p1:{t:"Super 1 — The Baseline Run",d:"Clean weather · full weight chain · runway choice",p:`FLT 1462  twin-jet  KDEN (elev 5,434') → KJFK   ETE 3:20   ETA 2130Z
+WEIGHTS (1,000 lb): ZFW 122.4 · taxi fuel 0.7 · total fuel 27.6 · en route burn 20.8
+KDEN METAR: 26008KT 5SM BKN025 (CAT I mins: DA 200 / RVR 1800)
+KJFK TAF (ETA window): 22012KT P6SM SCT035
+`+JFKDATA},
+p2:{t:"Super 2 — Rainy Night Into JFK",d:"Takeoff alternate · destination alternate · fuel build · wet data",p:`FLT 1462  twin-jet  KDEN → KJFK   ETE 3:20   ETA 0230Z
+WEIGHTS (1,000 lb): ZFW 121.0 · taxi 0.7 · en route burn 20.8
+KDEN METAR: 00000KT RVR 1200 VV001 (CAT I mins DA 200/RVR 1800; takeoff legal per OpSpecs)
+KJFK TAF (ETA window): 22015G24KT 1/2SM +RA OVC004
+ALTERNATES: KPHL burn 2.1 · KBDL burn 2.4 · 45-min reserve 3.9
+`+JFKDATA},
+p3:{t:"Super 3 — Ice on the Arrival",d:"Ice accretion corrections · the lighter-of-three FLIPS at the alternate",p:`FLT 1462  twin-jet  KDEN → KJFK   ETE 3:20
+FORECAST: moderate icing 40 continuous minutes in the final hour before landing
+KJFK ETA temp +3°C · engine AND wing anti-ice will be ON for approach
+WEIGHTS (1,000 lb): TOW 147.8 · burn 20.9 → planned LW at JFK 126.9
+DIVERSION CASE: alternate KDEN (PA 5,000 ft, 30°C) — LW if diverting 129.4
+`+JFKDATA},
+p4:{t:"Super 4 — Short and Wet",d:"TAA-shortened runway · wet chart · wind credit vs structural",p:`FLT 1462  twin-jet  KDEN → KJFK   planned LW 143.8 (1,000 lb)
+KJFK ATIS: 22018G28KT 1/2SM RA OVC005 — RWYS 22L/22R IN USE
+NOTAM/TAA: RWY 22L usable landing length REDUCED TO 6,600 FT (construction)
+ATC advises: expect RWY 22L
+`+JFKDATA},
+p5:{t:"Super 5 — MEL, Delay & Paperwork",d:"MEL penalty · ground delay redispatch · amendment & signatures",p:`FLT 1462  twin-jet  KDEN → KJFK
+MEL 32-42-1 ANTI-SKID INOP — penalty: SUBTRACT 2,600 FT from usable landing length
+Pushback delayed — departure will be 1:10 BEHIND the original release time
+Planned landing runway: KJFK 31L · forecast wet · planned LW 138.6 (1,000 lb)
+FUEL RECHECK (121.647): winds, traffic delays, one approach + possible missed approach
+`+JFKDATA}
+};
+const SUPERQS=[
+// p1
+{sc:"p1",q:"First decision at DEN: is a TAKEOFF ALTERNATE required?",o:["No — DEN weather (5SM/BKN025) is at or above landing minimums","Yes — always required for flights over 3 hours","Yes — DEN is a high-elevation airport"],a:0,exp:"121.617 triggers only when departure weather is <b>below the LANDING minimums</b> for that airport. 5SM/2,500 ft is far above CAT I — no takeoff alternate.",ref:"121.617"},
+{sc:"p1",q:"Ramp (taxi) weight = ZFW + total fuel =",o:["150.0","148.6","122.4 + burn"],a:0,exp:"122.4 + 27.6 = <b>150.0</b>. Fuel goes on top of ZFW — that's the whole buildup chain.",ref:"Ref 06 §1"},
+{sc:"p1",q:"Takeoff weight = ramp − taxi fuel =",o:["149.3","150.7","148.5"],a:0,exp:"150.0 − 0.7 = <b>149.3</b>. You burn the taxi fuel before brake release, which is why max ramp sits slightly above MTOW.",ref:"Ref 06 §1"},
+{sc:"p1",q:"Planned landing weight at JFK = TOW − en route burn =",o:["128.5","129.9","127.1"],a:0,exp:"149.3 − 20.8 = <b>128.5</b>. This is the number every landing chart check uses.",ref:"Ref 10"},
+{sc:"p1",q:"Does JFK require a destination ALTERNATE?",o:["No — SCT035 is no ceiling and vis is P6SM: 1-2-3 is satisfied","Yes — always at JFK","Yes — scattered clouds count as a ceiling"],a:0,exp:"ETA ±1 hr: ceiling ≥2,000 (SCT isn't a ceiling at all) and vis ≥3 → <b>no alternate required</b> (121.619).",ref:"121.619"},
+{sc:"p1",q:"Wind 220/12 — which JFK runway is the natural choice, and what usable landing length does it give you?",o:["22R — 8,655 ft","4L — 11,619 ft","13R — 12,467 ft"],a:0,exp:"Wind favors the 22s; <b>22R gives 8,655 ft beyond the threshold</b>. (22L only 7,440.) Always read the usable-length table, not the paved length.",ref:"Ref 10 §4/§7"},
+{sc:"p1",q:"Dry or wet chart data at dispatch?",o:["Dry — forecast visibility P6SM is at/above 3/4 SM and no precip","Wet — JFK is near the ocean","Wet — always at night"],a:0,exp:"The wet-data trigger is forecast vis <b>below 3/4 SM (RVR 4000)</b> or an actually wet runway — neither applies. <b>Dry data.</b>",ref:"Ref 10 §3"},
+{sc:"p1",q:"Max allowable landing weight on 22R tonight (lighter of climb / runway / structural):",o:["144.0 — structural controls (climb 190.0, runway 190.0 dry at 8,655)","190.0 — the chart cap","168.7"],a:0,exp:"Climb: SL/warm = 190.0. Runway: 8,655 dry ≈ 190.0. Structural: <b>144.0 — the lightest wins</b>. LW 128.5 → legal with 15.5 to spare.",ref:"Ref 10 §1"},
+// p2
+{sc:"p2",q:"DEN is RVR 1200 — takeoff is legal but landing minimums are RVR 1800. What does dispatch add?",o:["A takeoff alternate on the release","Nothing — takeoff legality is all that matters","Extra taxi fuel"],a:0,exp:"Below landing mins at departure → <b>takeoff alternate required (121.617)</b> and it must appear on the release.",ref:"121.617"},
+{sc:"p2",q:"For this twin, the takeoff alternate must be within:",o:["1 hour at normal cruise, still air, one engine inoperative","2 hours, all engines","100 NM"],a:0,exp:"<b>Twins: 1 hour OEI still-air</b> (3+ engines: 2 hours). KCOS fits nicely from DEN.",ref:"121.617"},
+{sc:"p2",q:"JFK TAF: 1/2SM +RA OVC004 at ETA. Destination alternate?",o:["Required — both ceiling (400 ft) and visibility (1/2SM) bust the 1-2-3 rule","Not required — JFK has CAT III","Required only if the captain asks"],a:0,exp:"400 ft < 2,000 and 1/2 < 3 → <b>alternate required</b> (121.619). Approach capability never waives the RULE.",ref:"121.619"},
+{sc:"p2",q:"Which landing data column applies at dispatch?",o:["WET — forecast vis 1/2SM is below 3/4 SM (RVR 4000)","DRY — the rain may stop","Contaminated"],a:0,exp:"<b>The 3/4-mile rule forces WET data</b> regardless of actual surface state — at dispatch only.",ref:"Ref 10 §3"},
+{sc:"p2",q:"Minimum release fuel (taxi 0.7 + burn 20.8 + most distant alternate + 45-min reserve 3.9):",o:["27.8 — using KBDL 2.4, the most distant","27.5 — using KPHL 2.1","25.4 — alternates aren't fueled"],a:0,exp:"121.639: destination + <b>MOST DISTANT alternate</b> + 45 min. 0.7+20.8+2.4+3.9 = <b>27.8</b>.",ref:"121.639"},
+{sc:"p2",q:"With ZFW 121.0 and that minimum fuel 27.8: TOW and landing weight at JFK are:",o:["TOW 148.1 · LW 127.3","TOW 148.8 · LW 128.0","TOW 147.4 · LW 126.6"],a:0,exp:"Ramp 121.0+27.8 = 148.8 → TOW 148.8−0.7 = <b>148.1</b> → LW 148.1−20.8 = <b>127.3</b>.",ref:"Ref 06 §1"},
+{sc:"p2",q:"Landing 22R (8,655 wet ≈ 188.2). Late wind swings to 040/8 but ATC keeps you on 22R — an 8-kt tailwind. New runway-limited weight:",o:["188.2 − (8 × 2.5) = 168.2","188.2 − (8 × 0.5) = 184.2","Unchanged — tailwind under 10 kt is free"],a:0,exp:"Tailwind costs <b>2.5 per knot</b> here: 188.2 − 20 = <b>168.2</b>. Note the asymmetry vs the +0.5/kt headwind credit.",ref:"Ref 10 §3"},
+{sc:"p2",q:"After all that — what actually limits tonight's landing weight?",o:["Structural 144.0 — still the lightest of the three","The tailwind-corrected 168.2","Climb limit 190.0"],a:0,exp:"Climb 190 · runway 168.2 · structural 144 → <b>144 still controls</b>, and LW 127.3 is comfortably legal. The chart work proves it — that's the discipline.",ref:"Ref 10 §1"},
+// p3
+{sc:"p3",q:"Moderate icing for 40 minutes in the final hour, arrival temp +3°C. Does the ICE ACCRETION correction apply?",o:["Yes — ≥30 min of mod/severe icing within the final hour AND arrival ≤10°C","No — only severe icing triggers it","No — 3°C is above freezing"],a:0,exp:"Both trigger conditions met: <b>40 min ≥ 30 min</b> and <b>3°C ≤ 10°C</b>. Apply it.",ref:"Ref 10 §2"},
+{sc:"p3",q:"Engine AND wing anti-ice will also be on. How do the corrections combine?",o:["Cumulative — apply both (−3.0 and −15.0 = −18.0)","Use only the larger (−15.0)","Anti-ice replaces ice accretion"],a:0,exp:"<b>Cumulative</b> — the chart note says apply both: 190.0 − 3.0 − 15.0 = climb limit <b>172.0</b> at JFK.",ref:"Ref 10 §2"},
+{sc:"p3",q:"At JFK (sea level), the controlling landing limit is now:",o:["Structural 144.0 — corrected climb limit 172.0 is still higher","Climb 172.0","Runway — 13R wet"],a:0,exp:"Lighter of climb 172.0 / runway ~190 / structural 144.0 → <b>144.0</b>. LW 126.9 legal. But watch the alternate…",ref:"Ref 10 §1"},
+{sc:"p3",q:"Diversion case — KDEN, PA 5,000 ft, 30°C. Corrected climb-limited weight there:",o:["149.6 − 18.0 = 131.6","190.0 − 18.0 = 172.0","149.6 — corrections don't apply at alternates"],a:0,exp:"High and hot start point 149.6, minus the same −18.0 = <b>131.6</b>. Corrections follow the airplane, not the airport.",ref:"Ref 10 §2"},
+{sc:"p3",q:"At DEN, the lighter-of-three is now:",o:["Climb-limited 131.6 — it drops BELOW structural 144.0","Structural 144.0, as always","Runway-limited"],a:0,exp:"<b>The hierarchy flips:</b> at a high, hot field with ice corrections, the climb limit (131.6) undercuts structural. This is why you check all three at EVERY airport.",ref:"Ref 10 §1"},
+{sc:"p3",q:"Diversion landing weight would be 129.4. Legal at DEN?",o:["Yes — 129.4 < 131.6, with only 2.2 of margin","No — over the limit","Only with a headwind"],a:0,exp:"Legal but <b>tight (2.2)</b>. A good dispatcher sees that margin and thinks about fuel, runway choice, or a different alternate before releasing.",ref:"Ref 10"},
+{sc:"p3",q:"Which inputs enter the climb-limited table?",o:["Airport pressure altitude and temperature","Usable length and wind","RwyCC and slope"],a:0,exp:"<b>PA + OAT</b> — it's a go-around climb check. (Field elevation is acceptable for PA.)",ref:"Ref 10 §2"},
+{sc:"p3",q:"The en route icing also reminds you of 121.601: during flight the dispatcher must pass the crew:",o:["Additional info on meteorological conditions (CAT, TS, LLWS, icing) and facility irregularities affecting safety","Only what ATC relays","Gate assignments"],a:0,exp:"<b>121.601(c)</b> — the briefing duty continues to touchdown. Adequate and identical information, all flight long.",ref:"121.601"},
+// p4
+{sc:"p4",q:"Where does the 6,600-ft figure for 22L legally come from?",o:["A NOTAM / field-condition report / temporary airport analysis correcting the usable length","The captain's estimate","The paved length minus a safety factor"],a:0,exp:"Corrected usable lengths flow through <b>NOTAM, FICON, or TAA</b> (Ref 10 §4). 22L's normal 7,440 is already the shortest of the 22s — construction makes it worse.",ref:"Ref 10 §4"},
+{sc:"p4",q:"Vis 1/2SM RA — which chart column for 22L at 6,600 ft?",o:["WET: 144.5","DRY: 168.7","Interpolate between them"],a:0,exp:"Below 3/4 SM AND raining → <b>WET, 144.5</b> at sea level for 6,600 usable feet.",ref:"Ref 10 §3"},
+{sc:"p4",q:"The 18-kt headwind component earns a credit. New runway-limited weight:",o:["144.5 + (18 × 0.5) = 153.5","144.5 + (18 × 2.5) = 189.5","No credit on wet runways"],a:0,exp:"+0.5/kt → <b>153.5</b>. But hold that thought against the OTHER limits…",ref:"Ref 10 §3"},
+{sc:"p4",q:"So the max allowable landing weight on 22L tonight is:",o:["144.0 — structural still undercuts the wind-credited 153.5","153.5","144.5"],a:0,exp:"<b>Wind credit can never beat structural.</b> Lighter of 190 / 153.5 / 144.0 = 144.0. LW 143.8 → legal by 0.2.",ref:"Ref 10 §1"},
+{sc:"p4",q:"Legal by 0.2 (200 lb). The dispatcher's BEST move:",o:["Coordinate: request 22R (8,655), or trim fuel/payload for real margin — legal-but-razor-thin deserves action","Release it — legal is legal","Cancel the flight"],a:0,exp:"121.533 judgment: 200 lb of margin on a wet, gusty night is an invitation to trouble. <b>22R at 8,655 wet (188.2) makes the problem vanish</b> — ask for it.",ref:"121.533/Ref 10"},
+{sc:"p4",q:"If the TAA had cut 22L to 5,000 usable feet instead, the wet table shows:",o:["N/A — landing not authorized at any weight","A very low weight","Use dry data instead"],a:0,exp:"<b>N/A = the runway is too short, period.</b> No weight, no wind credit, no waiver makes it legal.",ref:"Ref 10 §3"},
+{sc:"p4",q:"Suppose the flight lands heavy elsewhere and exceeds the quick turn-around weight. Before the next takeoff:",o:["Wait ≥67 minutes and confirm the wheel thermal plugs haven't melted","Nothing if the brakes feel cool","Change the tires"],a:0,exp:"<b>67 minutes + thermal-plug check</b> — and advise dispatch if it delays departure (schedule replanning is your job).",ref:"Ref 10 §6"},
+// p5
+{sc:"p5",q:"Anti-skid INOP. The MEL penalty is applied to:",o:["The usable landing length (subtract 2,600 ft) — or climb weight, per the MEL item","Reserve fuel","The structural limit"],a:0,exp:"MEL/CDL penalties hit <b>climb-limited weight or usable landing length</b> — this item costs 2,600 ft of runway credit.",ref:"Ref 10 §5"},
+{sc:"p5",q:"Adjusted usable length for 31L:",o:["11,247 − 2,600 = 8,647 ft","11,247 — penalties don't apply to long runways","8,163"],a:0,exp:"<b>8,647 ft</b> — still healthy: wet at ~8,600 ≈ 188.2, so structural 144.0 controls and LW 138.6 is legal.",ref:"Ref 10 §5"},
+{sc:"p5",q:"Departure will be 1:10 behind the original release. Dispatch must:",o:["Issue a redispatch/amended release — the delay exceeds 1 hour (121.631)","Nothing — delays under 2 hours are fine","Only notify ATC"],a:0,exp:"<b>More than 1 hour behind the release → amend/redispatch.</b> Weather, fuel, and alternates get a fresh look.",ref:"121.631"},
+{sc:"p5",q:"The amendment message must include:",o:["A CHANGE/AMEND/REVISE statement + description, the dispatcher's name or initials, and the time (ACARS auto-times)","Just the new departure time","The FAA office's approval code"],a:0,exp:"<b>Statement + who + when</b>, plus supporting details (weather, NOTAMs, fuel, routing). Straight from ref 09 §3.",ref:"Ref 09 §3"},
+{sc:"p5",q:"Re-running the fuel per 121.647, you must account for:",o:["Wind/weather, expected traffic delays, one instrument approach and possible missed approach, and other delaying conditions","Only the burn to destination","Fuel price"],a:0,exp:"All four <b>121.647 factors</b> — the delayed evening push into JFK is exactly when traffic-delay fuel earns its keep.",ref:"121.647"},
+{sc:"p5",q:"Who must believe the flight can be made safely before the (amended) release is signed?",o:["BOTH the PIC and the aircraft dispatcher (121.663)","The dispatcher only","The chief pilot"],a:0,exp:"<b>Both signatures, both convinced</b> — the two-key system at the heart of Part 121 dispatch.",ref:"121.663"},
+{sc:"p5",q:"The dispatcher going off shift may delegate:",o:["Authority to SIGN the release — but never the authority to DISPATCH","All duties, freely","Nothing at all"],a:0,exp:"121.663's famous line: delegate <b>signing</b>, never <b>dispatching</b>. Fill-in-the-blank favorite.",ref:"121.663"},
+{sc:"p5",q:"Big picture: across these five scenarios, the allowable landing weight was ALWAYS:",o:["The lightest of climb-limited, runway-limited, and structural — checked at destination AND alternate","Structural, every time","Whatever the chart's biggest number was"],a:0,exp:"<b>Lighter-of-three, everywhere, every time.</b> Usually structural wins — until short/wet runways or hot-high-iced alternates flip it. That's the whole art.",ref:"Ref 10 §1"}
+];
 const BANK = [
 // ---- LEVEL 1 ----
 {lv:1,topic:"Regs",q:"Operational control of a flight refers to:",o:["Exercising the privileges of pilot in command of an aircraft","The specific duties of any required crewmember","Exercising authority over initiating, conducting, or terminating a flight"],a:2,exp:"<b>14 CFR 1.1 / 121.533.</b> Operational control = authority over initiating, conducting, or terminating a flight. In domestic/flag ops the PIC and dispatcher share joint responsibility.",ref:"121.533"},
@@ -416,6 +507,8 @@ function home(){
     <button class="level" onclick="start(1)">Level 1 — Fundamentals<small>Definitions, METAR/TAF basics, core FAR recall</small></button>
     <button class="level" onclick="start(2)">Level 2 — Applied<small>Alternate math, fuel calcs, weight limits, RVR conversions</small></button>
     <button class="level" onclick="start(3)">Level 3 — Full Dispatch Scenario<small>Real paperwork package with buried problems — test-level</small></button>
+    <p style="margin:14px 0 4px;color:var(--dim);font-size:.85rem">🎓 SUPER SCENARIOS — Denver → JFK, full dispatch problems (weights → charts → decisions)</p>
+    ${Object.keys(SUPERS).map(k=>`<button class="level" style="background:#274156;border:1px solid #3e7cb1" onclick="startSuper('${k}')">${SUPERS[k].t}<small>${SUPERS[k].d}</small></button>`).join('')}
     <p style="margin:14px 0 4px;color:var(--dim);font-size:.85rem">AA REAL-EXAM DRILLS — built from actual hiring-test reports</p>
     ${CATS.map(c=>`<button class="level" onclick="startCat('${c[0]}')">${c[1]}<small>${c[0]==='all'?'10 random questions from the whole AA bank':countCat(c[0])+' questions in this topic'}</small></button>`).join('')}
     ${hist}</div>`;
@@ -423,9 +516,15 @@ function home(){
 function countCat(c){return AABANK.filter(q=>q.cat===c).length;}
 function start(lv){
   let pool=BANK.filter(q=>q.lv===lv),scen=null,qs;
-  if(lv===3){const key=shuffle(Object.keys(SCEN))[0];qs=shuffle(pool.filter(q=>q.sc===key)).slice(0,10);scen=key;}
+  if(lv===3){const key=shuffle(['s1','s2'])[0];qs=shuffle(pool.filter(q=>q.sc===key)).slice(0,10);scen=key;}
   else qs=shuffle(pool).slice(0,10);
   state={mode:'L'+lv,lv,scen,qs,i:0,score:0,picked:null,done:[]};
+  render();
+}
+function startSuper(k){
+  SCEN[k]=SUPERS[k].p;
+  const qs=SUPERQS.filter(q=>q.sc===k).map(q=>({topic:'🎓 '+SUPERS[k].t,...q}));
+  state={mode:'SUPER-'+k,lv:null,scen:k,qs,i:0,score:0,picked:null,done:[]};
   render();
 }
 function startCat(cat){
@@ -497,7 +596,7 @@ function finish(){
     ${missed.length?`<h1 style="font-size:1.1rem;margin:10px 0">Review your ${missed.length} miss${missed.length>1?'es':''}</h1>${rows}`:'<div class="card">Perfect round — nothing to review. 🎉</div>'}`;
   window.scrollTo(0,0);
 }
-window.start=start;window.startCat=startCat;window.startFocus=startFocus;window.pick=pick;window.next=next;window.home=home;
+window.start=start;window.startCat=startCat;window.startFocus=startFocus;window.startSuper=startSuper;window.pick=pick;window.next=next;window.home=home;
 home();
 </script>
 </body>
